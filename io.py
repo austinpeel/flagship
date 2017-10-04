@@ -1,14 +1,16 @@
 """
-This module contains methods for reading the Euclid Flagship Galaxy Mock.
+This module contains methods for reading the Euclid Flagship Galaxy Mock
+and halo catalogue.
 
-_Author_ Austin Peel <austin.peel@cea.fr>
+Author : Austin Peel <austin.peel@cea.fr>
 
-_Date_ 05 juillet 2017
+Date : 05 juillet 2017
+       12 septembre 2017
 """
-
 from common import home
 import os
 import astropy.io.fits as fits
+# from .utils import make_kappa
 
 
 def datapath(*args):
@@ -22,7 +24,6 @@ def datapath(*args):
     ----------
     args : str or str list
         Name(s) of the subdirectory(ies) to add after $HOME/Data/Flagship/
-
     """
 
     path = os.path.join(home, 'Data/Flagship')
@@ -32,17 +33,17 @@ def datapath(*args):
     return path
 
 
-def fetchcat(filename, *args):
+def fetch_cat(filename, *args):
     """
-    Retrieve a Flagship galaxy catalog in fits format.
+    Retrieve a Flagship galaxy or halo catalog in fits format.
 
     Parameters
     ----------
     filename : str
         Name of the file as [***].fits
 
-    Notes
-    -----
+    Note
+    ----
     Directories specifying the path to `filename` can be given as arguments
     after `filename`. For example,
     ```python
@@ -52,7 +53,6 @@ def fetchcat(filename, *args):
     ```python
     fetchcat('subdir/split5/tiles/cat.fits')
     ```
-
     """
 
     filepath = os.path.join(datapath(*args), filename)
@@ -61,3 +61,35 @@ def fetchcat(filename, *args):
         return cat
     else:
         print("Could not find {}".format(filepath))
+
+
+def fetch_kappa(split_id=0, zbin=None, npix=1024):
+    """
+    Retrieve a Flagship kappa map.
+
+    Parameters
+    ----------
+    split_id : int
+    zbin : int
+    npix : int
+    """
+    if zbin is None:
+        zb = ''
+    else:
+        zb = zbin
+    filename = 'splits/{}/maps/kappa{}_{}.fits'.format(split_id, zb, npix)
+    filepath = datapath(filename)
+    try:
+        kappa = fits.getdata(filepath)
+    except IOError:
+        start = len(datapath())
+        print("...{} does not exist. Generating.".format(filepath[start:]))
+        # if zbin is None:
+        #     make_kappa(split_id=split_id, npix=npix)
+        #     return fetch_kappa(split_id=split_id, npix=npix)
+        # else:
+        #     make_kappa(split_id, zbin, npix)
+        #     return fetch_kappa(split_id, zbin, npix)
+        print("Just kidding. Generate yourself.")
+
+    return kappa
