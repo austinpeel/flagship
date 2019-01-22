@@ -3,26 +3,63 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from astropy.cosmology import FlatLambdaCDM
 from scipy.ndimage.filters import gaussian_filter
 from shapely.geometry import Point
+from wltools.conversions import to_arcmin
 from wltools.projections import gnom
 from wltools.mapping import bin2d
 from wltools.plotting import plot2d, plot_sticks
 from wltools.halos.fitting import lsqfit
+from wltools.utils import printtime
 from .io import fetch_cat
+from .field import flagship_field, which_patch, which_patches
+from .cosmo import flagship_cosmology
+
+
+def rank2id(rank, patch_id, version='1.5.2'):
+    """
+    Return the unique halo_id of the `n`th most massive halo by fof mass,
+    starting with 0. Only halos with log(m_fof) > 13.5 are considered.
+    """
+    halos = fetch_cat(patch_id, halos=True, version=version)
+    nhalos = len(halos)
+    if rank > nhalos:
+        print("There are only {} halos with log(m_fof) > 13.5.".format(nhalos))
+        halo_id = -1
+    else:
+        halo_id = halos[::-1]['halo_id'][rank]
+    return halo_id
 
 
 class flagship_halo(object):
-    def __init__(self, halo_id, split_id=0):
-        # Cosmology
-        Om0 = 0.319
-        H0 = 67. # [km/s/Mpc]
-        self.cosmo = FlatLambdaCDM(H0=H0, Om0=Om0)
+    """Euclid Flagship dark matter halo class."""
+    def __init__(self, patch_id, halo_id=None, rank=0, version='1.5.2'):
+        """
+        Parameters
+        ----------
+        patch_id : int
+            ID of the patch (0-80) the halo lies in. This is necessary, since
+            we generate halo catalogues from each patch of the galaxy
+            catalogue; i.e. we need to know where the halo lives.
+        halo_id : int, optional
+            Unique halo identifier given in Flagship catalogue.
+            Default is None.
+        rank : int, optional
+            Ranking by log(m_fof) of halos in area corresponding to patch_id.
+            Default is 0, i.e. the most massive halo.
 
-        halofile = 'splits/{}/halos/halocat_13.5.fits'.format(split_id)
-        halos = fetch_cat(halofile)
-        # Halo properties (with units where appropriate)
+        Note
+        ----
+        One of either halo_id or rank must be provided, with halo_id
+        taking precedence.
+        """
+        if halo_id is None:
+            halo_id = rank2id(rank=rank, patch_id=patch_id, version=version)
+            if halo_id < 0:
+                print("Error: invalid rank.")
+                return
+
+        halos = fetch_cat(patch_id=patch_id, halos=True, version=version)
         if halo_id not in halos['halo_id']:
             print("Invalid halo id.")
             return
@@ -30,23 +67,62 @@ class flagship_halo(object):
         # Extract the correct halo
         halo = halos[halos['halo_id'] == halo_id]
 
-        self.split_id = split_id
+        # Cosmology
+        self.cosmo = flagship_cosmology()
+
+        # Halo properties (with units where appropriate)
+        self.patch_id = patch_id
         self.id = halo['halo_id'][0]
         self.ra = halo['ra'][0] * u.degree
         self.dec = halo['dec'][0] * u.degree
         self.z = halo['z'][0]
         self.lmfof = halo['lmfof'][0] # [log10(M_sun / h)]
-        self.lmvir = halo['lmvir'][0] # [log10(M_sun / h)]
-        self.lm200c = halo['lm200c'][0] # [log10(M_sun / h)]
-        self.mfof = 10**self.lmfof / self.cosmo.h  * u.solMass
-        self.mvir = 10**self.lmvir / self.cosmo.h  * u.solMass
-        self.m200c = 10**self.lm200c / self.cosmo.h * u.solMass
+        self.mfof = 10**self.lmfof / self.cosmo.h * u.solMass
+        if 'lmvir' in halos.names:
+            self.lmvir = halo['lmvir'][0] # [log10(M_sun / h)]
+            self.mvir = 10**self.lmvir / self.cosmo.h * u.solMass
+        if 'lm200c' in halos.names:
+            self.lm200c = halo['lm200c'][0] # [log10(M_sun / h)]
+            self.m200c = 10**self.lm200c / self.cosmo.h * u.solMass
         self.ngal = halo['ngal'][0]
         self.npart = halos['npart'][0]
+        self.version = version
 
     def load_members(self):
         # Load full galaxy catalog
-        cat = fetch_cat('splits/{}/galcat_full.fits'.format(self.split_id))
+        cat = fetch_cat(self.patch_id, version=self.version)
+        sel = cat['halo_id'] == self.id
+        print(sel.sum(), self.ngal)
+        # if not sel.sum() == self.ngal:
+            # print("Not enough. Need to load nearby patches.")
+        print("THIS CODE IS UNFINISHED")
+        return
+        # Load galaxies
+        ra_gal = []
+        dec_gal = []
+        z_gal = []
+        for pid in patch_ids:
+            print("Fetching patch {}".format(pid))
+            cat = fetch_cat(pid, version=version)
+            if cat is None:
+                print("!! Skipped patch {} !! Need to download.".format(pid))
+                continue
+            print("Selecting galaxies.")
+            # selection_time = time.time()
+            sel = ((cat['ra_gal_mag'] > self.extent[0].value) &
+                   (cat['ra_gal_mag'] < self.extent[1].value) &
+                   (cat['dec_gal_mag'] > self.extent[2].value) &
+                   (cat['dec_gal_mag'] < self.extent[3].value))
+            print("Loaded {} galaxies within extent.".format(sel.sum()))
+            # printtime(time.time() - selection_time)
+            cat = cat[sel]
+            ra_gal.append(cat['ra_gal_mag']) # a bit faster than extend()
+            dec_gal.append(cat['dec_gal_mag'])
+            z_gal.append(cat['true_redshift_gal'])
+            gamma1.append(cat['gamma1'])
+            gamma2.append(cat['gamma2'])
+            kappa.append(cat['kappa'])
+        return
         # Locate entries matching unique halo index
         self.member_inds = (cat['halo_id'] == self.id)
         cat = cat[self.member_inds]
@@ -66,13 +142,19 @@ class flagship_halo(object):
 
 
 class postage_stamp(object):
-    """Extract a lensing postage stamp centered on a Flagship halo."""
-    def __init__(self, halo_id, size=None, timed=True):
+    """A lensing postage stamp centered on a Flagship halo."""
+    def __init__(self, patch_id, halo_id=None, rank=0, size=None,
+                 version='1.5.2', timed=True):
         """
         Parameters
         ----------
-        halo_id : int
+        patch_id : int
+            ID of the patch (0-80) the halo lives in.
+        halo_id : int, optional
             Unique halo id.
+        rank : int, optional
+            Ranking by log(m_fof) of halos in area corresponding to patch_id.
+            Default is 0, i.e. the most massive halo.
         size : float, optional (as `astropy.units.quantity.Quantity`)
             Angular size of square postage stamp in arcmin, centered on the
             halo. If no compatible units are given, arcmin are assumed.
@@ -82,24 +164,25 @@ class postage_stamp(object):
         starttime = time.time()
 
         # Load halo properties as a flagship_halo object
-        self.halo = flagship_halo(halo_id)
+        self.halo = flagship_halo(patch_id=patch_id, halo_id=halo_id,
+                                  rank=rank, version=version)
+        self.patch_id = patch_id
+        self.version = version
 
         # Cosmology
         self.cosmo = self.halo.cosmo
         angular_scale = self.cosmo.arcsec_per_kpc_proper(self.halo.z)
         self.angular_scale = angular_scale.to(u.arcmin / u.Mpc)
 
-        # TODO This check can surely be improved...
+        # Set stamp size (in radians)
         if size is not None:
             try:
-                size = size.to(u.rad)
-            except AttributeError:
-                size = float(size) * u.arcmin
-                size = size.to(u.rad)
+                size = to_arcmin(size).to('rad')
             except u.UnitConversionError:
                 print("Error: Invalid unit for size. Resorting to Default.")
                 size = (8 * u.Mpc) * self.angular_scale
                 size = size.to(u.rad)
+
         else:
             size = (8 * u.Mpc) * self.angular_scale
             size = size.to(u.rad)
@@ -107,8 +190,11 @@ class postage_stamp(object):
         # Determine minimum rectangle in RA/Dec to contain the projected patch
         radec_extent = gnom.tangent_square(self.halo.ra, self.halo.dec, size)
 
+        #
+        ff = flagship_field(extent=radec_extent)
+
         # Pull all galaxies within the postage stamp area
-        cat = fetch_cat('splits/0/galcat_full.fits')
+        cat = fetch_cat(self.halo.patch_id)
         halfsize = size.value / 2 # [radians]
         x, y = gnom.radec2xy(self.halo.ra, self.halo.dec,
                              cat['ra_gal_mag'], cat['dec_gal_mag'])
@@ -145,26 +231,26 @@ class postage_stamp(object):
         self.src_density = self.src_mask.sum() / self.area
 
         # Load nearby halos
-        self.load_nearby_halos()
+        self._load_nearby_halos()
 
         if timed:
-            print("Time : {0:.2f} sec".format(time.time() - starttime))
+            printtime(time.time() - starttime)
 
 
-    def load_nearby_halos(self):
-        halos = fetch_cat('splits/split0_halos_13.5.fits')
+    def _load_nearby_halos(self):
+        halos = fetch_cat(self.patch_id, halos=True, version=self.version)
         # Project halos and select the ones within this halo's extent
         x_halo, y_halo = gnom.radec2xy(self.halo.ra, self.halo.dec,
-                                       halos['halo_ra'] * u.deg,
-                                       halos['halo_dec'] * u.deg)
+                                       halos['ra'] * u.deg,
+                                       halos['dec'] * u.deg)
         x_halo = (x_halo * u.rad).to(u.arcmin)
         y_halo = (y_halo * u.rad).to(u.arcmin)
         xmin, xmax, ymin, ymax = self.extent
         sel = ((x_halo > xmin) & (x_halo < xmax) &
                (y_halo > ymin) & (y_halo < ymax))
         halo_ids = halos['halo_id'][sel]
-        self.nearby_halos = [flagship_halo(idx) for idx in halo_ids if
-                             idx != self.halo.id]
+        self.nearby_halos = [flagship_halo(self.patch_id, hid) for hid
+                             in halo_ids if hid != self.halo.id]
 
 
     def plot_halo_members(self):
@@ -182,13 +268,16 @@ class postage_stamp(object):
         plt.show()
 
 
-    def plot_nearby_halos(self, ax=None):
+    def plot_nearby_halos(self, lm_min=None, ax=None, show_z=False):
         if ax is None:
             fig, ax = plt.subplots(1, 1, facecolor='w')
             ax.scatter(0, 0, marker='x')
+        if lm_min is None:
+            lm_min = 0.
         for halo in self.nearby_halos:
-            x, y = halo.projected_position(self.halo.ra, self.halo.dec)
-            ax.scatter(x, y, c='r')
+            if halo.lmfof > lm_min:
+                x, y = halo.projected_position(self.halo.ra, self.halo.dec)
+                ax.scatter(x, y, c='r')
         ax.set_xlim(self.extent[:2].value)
         ax.set_ylim(self.extent[-2:].value)
         ax.set_aspect('equal')
