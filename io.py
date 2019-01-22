@@ -4,92 +4,108 @@ and halo catalogue.
 
 Author : Austin Peel <austin.peel@cea.fr>
 
-Date : 05 juillet 2017
+Date : 05 juillet 2017 (version 1.3.3)
        12 septembre 2017
+       22 novembre 2017
+       11 jan 2018 (updated to version 1.5.2)
 """
 from common import home
 import os
 import astropy.io.fits as fits
-# from .utils import make_kappa
 
 
-def datapath(*args):
+def datapath(subdir=None):
     """
-    Retrieve the system path to the catalogs.
+    Retrieve the system path to local Flagship files.
 
-    It is assumed that the catalogs are fits files located in
-    $HOME/Data/Flagship/
+    It is assumed that files are located in $HOME/Data/Flagship/
 
     Parameters
     ----------
-    args : str or str list
-        Name(s) of the subdirectory(ies) to add after $HOME/Data/Flagship/
+    subdir : str, optional
+        Subdirectory(ies) to add after $HOME/Data/Flagship/
+
+    Returns
+    -------
+    datapath : str
+        Full system path to Flagship data files.
     """
-
     path = os.path.join(home, 'Data/Flagship')
-    for arg in args:
-        path = os.path.join(path, arg)
-
+    if subdir is not None:
+        path = os.path.join(path, str(subdir))
     return path
 
 
-def fetch_cat(filename, *args):
+def dboxpath(subdir=None):
+    """
+    Retrieve the system path to Dropbox Flagship files.
+
+    It is assumed that files are located in $HOME/Dropbox/Data/Flagship/
+
+    Parameters
+    ----------
+    subdir : str, optional
+        Subdirectory(ies) to add after $HOME/Dropbox/Data/Flagship/
+    """
+    path = os.path.join(home, 'Dropbox/Data/Flagship')
+    if subdir is not None:
+        path = os.path.join(path, str(subdir))
+    return path
+
+
+def fetch_cat(patch_id, halos=False, version='1.5.2', verbose=False):
     """
     Retrieve a Flagship galaxy or halo catalog in fits format.
 
     Parameters
     ----------
-    filename : str
-        Name of the file as [***].fits
-
-    Note
-    ----
-    Directories specifying the path to `filename` can be given as arguments
-    after `filename`. For example,
-    ```python
-    fetchcat('cat.fits', 'subdir', 'split5', 'tiles')
-    ```
-    is equivalent to
-    ```python
-    fetchcat('subdir/split5/tiles/cat.fits')
-    ```
+    patch_id : int
+        Catalogue ID number as .../patches/[patch_id]/galcat_full.fits
+    halos : bool, optional
+        Get halo catalog instead of galaxy catalog for this patch if True.
+        Default is False.
+    version : str, optional
+        Flagship release version. Default is '1.5.2'.
+    verbose : bool, optional
+        Print loaded file path if True. Default is False.
     """
+    if verbose:
+        print("Flagship v" + version)
 
-    filepath = os.path.join(datapath(*args), filename)
-    if os.path.exists(filepath):
-        cat = fits.getdata(filepath)
-        return cat
+    if halos:
+        halopath = '{}/patches/{}/halos/'.format(version, patch_id)
+        # fpath = datapath(subdir=halopath, version=version)
+        fpath = datapath(subdir=(halopath + 'halocat_13.5.fits'))
     else:
-        print("Could not find {}".format(filepath))
-
-
-def fetch_kappa(split_id=0, zbin=None, npix=1024):
-    """
-    Retrieve a Flagship kappa map.
-
-    Parameters
-    ----------
-    split_id : int
-    zbin : int
-    npix : int
-    """
-    if zbin is None:
-        zb = ''
-    else:
-        zb = zbin
-    filename = 'splits/{}/maps/kappa{}_{}.fits'.format(split_id, zb, npix)
-    filepath = datapath(filename)
+        catpath = '{}/patches/{}/'.format(version, patch_id)
+        # fpath = datapath(subdir=catpath, version=version)
+        fpath = datapath(subdir=(catpath + 'galcat_full.fits'))
     try:
-        kappa = fits.getdata(filepath)
-    except IOError:
-        start = len(datapath())
-        print("...{} does not exist. Generating.".format(filepath[start:]))
-        # if zbin is None:
-        #     make_kappa(split_id=split_id, npix=npix)
-        #     return fetch_kappa(split_id=split_id, npix=npix)
-        # else:
-        #     make_kappa(split_id, zbin, npix)
-        #     return fetch_kappa(split_id, zbin, npix)
-        print("Just kidding. Generate yourself.")
+        cat = fits.getdata(fpath)
+        if verbose:
+            print("Loaded " + fpath)
+        return cat
+    except IOError as e:
+        print("Could not find {}".format(fpath))
 
-    return kappa
+
+def fetch_sandrines_patch():
+    catpath = '1.3.3/patches/sandrine/Flagship_1736_cat_1.fits'
+    return fits.getdata(datapath(catpath))
+
+
+def fetch_spv(patch_id, halos=False, verbose=False):
+    if halos:
+        halopath = '1.3.3/patches/spv2/halos/halocat{}_13.5.fits'.format(patch_id)
+        fpath = datapath(halopath)
+    else:
+        catpath = 'patches/spv2/spv2cat{}.fits'.format(patch_id)
+        fpath = datapath(catpath, version='1.3.3')
+    try:
+        cat = fits.getdata(fpath)
+        if verbose:
+            print("Loaded " + fpath)
+        return cat
+    except IOError as e:
+        print("Could not find {}".format(fpath))
+        print("Might need to run split_spv.py first.")
