@@ -1,7 +1,7 @@
 # flagship
 Python codes to process and experiment with the `Euclid Flagship` mock using weak-lensing data.
 
-Galaxy catalogs covering an octant of simulated sky can be downloaded from [CosmoHUB](https://cosmohub.pic.es/#/catalogs/53).  
+Galaxy catalogs covering an octant of simulated sky can be downloaded from [CosmoHUB](https://cosmohub.pic.es/catalogs).  
 Previous version: 1.3.3 (galaxies/lensing mismatch error)  
 Current version:  1.5.2 (error fixed)
 
