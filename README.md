@@ -8,10 +8,10 @@ Current version:  1.5.2 (error fixed)
 Although the official Flagship release is not available to non-Euclid members, some versions of the previous MICE catalog are (also found on CosmoHUB).
 
 ## Introduction
-This package contains Python 2.7 modules I have written to access, process, and experiment with the weak-lensing mock data of the latest Euclid Flagship release. It was primarily created for personal use to help me test ideas related to estimating the masses of galaxy clusters using weak lensing. As such, it is not (yet) documented as well as it could be, and I do not guarantee its accuracy. However, if you happen to find any part of it useful in your own work, please feel free. I will also be happy to answer questions
+This package contains Python 2.7 modules I have written to access, process, and experiment with the weak-lensing mock data of the latest Euclid Flagship release. It was primarily created for personal use to help me test ideas related to estimating the masses of galaxy clusters using weak lensing. It is still a work in progress. As such, it is not (yet) documented as well as it could be, and I do not make any guarantees regarding its accuracy. However, if you happen to find any part of it useful in your own work, please feel free. I will also be happy to answer questions about how it works.
 
 ## Notes
-The columns of the Flagship ca used in this study are
+The columns of the Flagship catalog used in this study are
 1. `halo_id`
 2. `galaxy_id`
 3. `ra_gal`
