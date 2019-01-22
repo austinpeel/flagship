@@ -1,16 +1,14 @@
 # flagship
 Python codes to process and experiment with the `Euclid Flagship` mock using weak-lensing data.
 
-Galaxy catalogs covering an octant of simulated sky can be downloaded from [CosmoHUB](https://cosmohub.pic.es/#/catalogs/53)
-
-Previous version: 1.3.3 (galaxies/lensing mismatch error)
+Galaxy catalogs covering an octant of simulated sky can be downloaded from [CosmoHUB](https://cosmohub.pic.es/#/catalogs/53).  
+Previous version: 1.3.3 (galaxies/lensing mismatch error)  
 Current version:  1.5.2 (error fixed)
 
 Although the official Flagship release is not available to non-Euclid members, some versions of the previous MICE catalog are (also found on CosmoHUB).
 
 ## Introduction
 This package contains Python 2.7 modules I have written to access, process, and experiment with the weak-lensing mock data of the latest Euclid Flagship release. It was primarily created for personal use to help me test ideas related to estimating the masses of galaxy clusters using weak lensing. As such, it is not (yet) documented as well as it could be, and I do not guarantee its accuracy. However, if you happen to find any part of it useful in your own work, please feel free. I will also be happy to answer questions
----
 
 ## Notes
 The columns of the Flagship ca used in this study are
@@ -44,10 +42,8 @@ galmap = bin2d(cat.x_gal, cat.y_gal, npix=128)
 ```
 
 ### Questions
-Why are the vast majority of `ra_gal_mag` and `dec_gal_mag` values NAN ?
-
+Why are the vast majority of `ra_gal_mag` and `dec_gal_mag` values NAN ?  
 [Update] This has been fixed in the second release.
----
 
 ## Plans
 The general plan is to test the weak-lensing masses of clusters in the simulation. This will likely be done by fitting NFW profiles to individual clusters, at least where they are massive enough (greater than a few $\times 10^14$ solar masses). Another possibility is to simply calculate aperture masses within a given radius.
