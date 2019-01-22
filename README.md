@@ -46,7 +46,7 @@ Why are the vast majority of `ra_gal_mag` and `dec_gal_mag` values NAN ?
 [Update] This has been fixed in the second release.
 
 ## Plans
-The general plan is to test the weak-lensing masses of clusters in the simulation. This will likely be done by fitting NFW profiles to individual clusters, at least where they are massive enough (greater than a few $\times 10^14$ solar masses). Another possibility is to simply calculate aperture masses within a given radius.
+The general plan is to test the weak-lensing masses of clusters in the simulation. This will likely be done by fitting NFW profiles to individual clusters, at least where they are massive enough (greater than a few x10^14 solar masses). Another possibility is to simply calculate aperture masses within a given radius.
 
 ### Step 1
 Downloaded the mock catalog. To start with, I have selected a 10 x 10 deg^2
@@ -58,8 +58,8 @@ Based on tests so far (as of 4 Oct 2017), there seems to be an issue with this.
 The convergence field does not track the galaxy distribution as it should.
 With Arnau Pujol, we have calculated $\kappa_g$ from the weighted projection
 of $\delta_g$ as in Eq. (16) of Pujol et al. (2016) [arXiv:1601.00160] using
-all galaxies with $z < 1.1$. Comparing with the kappa map from galaxies in
-$1.0 < z < 1.2$, there is essentially no correlation.
+all galaxies with z < 1.1. Comparing with the kappa map from galaxies in
+1.0 < z < 1.2, there is essentially no correlation.
 
 Pablo Fosalba, Jorge Carretero, and Romain Teyssier have been notified, and
 we are all working to figure out what is wrong.
