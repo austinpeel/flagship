@@ -1,7 +1,9 @@
+import os
 import time
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
+from astropy.io import fits
 from wltools.plotting import plot2d, plot_sticks
 from wltools.mapping import bin2d, ks93
 from wltools.projections import gnom
@@ -57,7 +59,7 @@ class flagship_field(object):
                    (cat['dec_gal_mag'] > self.extent[2].value) &
                    (cat['dec_gal_mag'] < self.extent[3].value))
             print("Loaded {} galaxies within extent.".format(sel.sum()))
-            # printtime(time.time() - selection_time)
+            # print_time(time.time() - selection_time)
             cat = cat[sel]
             ra_gal.append(cat['ra_gal_mag']) # a bit faster than extend()
             dec_gal.append(cat['dec_gal_mag'])
@@ -92,7 +94,7 @@ class flagship_field(object):
         self.version = version
 
         if timed:
-            printtime(time.time() - start_time)
+            print_time(time.time() - start_time)
 
 
     def plot_kappa(self, npix=128, ks=False, proj=False, lm_min=None,
@@ -183,3 +185,40 @@ class flagship_field(object):
         ax.set_ylabel("Dec")
         ax.set_xlim(extent[:2])
         ax.set_ylim(extent[2:])
+
+
+    def save_catalog(self, z_range=None, sigma_noise=None, outfile=None):
+        if outfile is None:
+            outfile = os.path.join(os.getcwd(), "cat.fits")
+
+        if z_range is not None:
+            z_min, z_max = z_range
+            inds = (self.z_gal >= z_min) & (self.z_gal <= z_max)
+        else:
+            inds = [True] * self.ngal
+
+        ra_gal = self.ra_gal[inds]
+        dec_gal = self.dec_gal[inds]
+        z_gal = self.z_gal[inds]
+        kappa_gal = self.kappa[inds]
+        gamma1_gal = self.gamma1[inds]
+        gamma2_gal = self.gamma2[inds]
+        weight = np.array([1] * len(ra_gal))
+
+        if sigma_noise is None:
+            sigma_noise = 0
+
+        e1_gal = gamma1_gal + sigma_noise * np.random.randn(len(gamma1_gal))
+        e2_gal = gamma2_gal + sigma_noise * np.random.randn(len(gamma2_gal))
+
+        # Write catalog to fits file
+        RA = fits.Column(name='ra', format='E', array=ra_gal)
+        DEC = fits.Column(name='dec', format='E', array=dec_gal)
+        Z = fits.Column(name='z_spec', format='E', array=z_gal)
+        KAPPA = fits.Column(name='kappa', format='E', array=kappa_gal)
+        E1 = fits.Column(name='e1_noisy', format='E', array=e1_gal)
+        E2 = fits.Column(name='e2_noisy', format='E', array=e2_gal)
+        W = fits.Column(name='w', format='E', array=weight)
+        cols = [RA, DEC, Z, KAPPA, E1, E2, W]
+        tbhdu = fits.BinTableHDU.from_columns(cols)
+        tbhdu.writeto(outfile, overwrite=True)
